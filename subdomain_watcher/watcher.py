@@ -187,7 +187,8 @@ async def domain_watcher_loop(
             except Exception:
                 # Can't notify about the error - just log it
                 logger.exception(
-                    "[%s] Failed to send error notification", domain,
+                    "[%s] Failed to send error notification",
+                    domain,
                 )
 
         logger.info("[%s] Sleeping for %s seconds", domain, interval)

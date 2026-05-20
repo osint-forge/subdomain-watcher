@@ -21,7 +21,10 @@ class SubfinderError(Exception):
     """Error running subfinder."""
 
     def __init__(
-        self, domain: str, message: str, return_code: int | None = None,
+        self,
+        domain: str,
+        message: str,
+        return_code: int | None = None,
     ) -> None:
         self.domain = domain
         self.message = message
@@ -30,7 +33,8 @@ class SubfinderError(Exception):
 
 
 async def run_subfinder(
-    domain: str, process_timeout: int = 300,
+    domain: str,
+    process_timeout: int = 300,
 ) -> list[SubfinderResult]:
     """
     Run subfinder for a domain and return discovered subdomains.
@@ -51,12 +55,15 @@ async def run_subfinder(
 
     try:
         process = await asyncio.create_subprocess_exec(
-            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
 
         try:
             stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=process_timeout,
+                process.communicate(),
+                timeout=process_timeout,
             )
         except TimeoutError:
             process.kill()
@@ -70,7 +77,9 @@ async def run_subfinder(
         if process.returncode != 0:
             error_msg = stderr.decode().strip() if stderr else "Unknown error"
             raise SubfinderError(
-                domain=domain, message=error_msg, return_code=process.returncode,
+                domain=domain,
+                message=error_msg,
+                return_code=process.returncode,
             )
     except FileNotFoundError:
         raise SubfinderError(
@@ -94,7 +103,9 @@ async def run_subfinder(
                 )
             except (json.JSONDecodeError, KeyError) as e:
                 logger.warning(
-                    "Failed to parse subfinder output line: %s - %s", line, e,
+                    "Failed to parse subfinder output line: %s - %s",
+                    line,
+                    e,
                 )
                 continue
 

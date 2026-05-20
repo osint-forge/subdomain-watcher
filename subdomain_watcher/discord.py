@@ -196,7 +196,9 @@ async def send_subdomain_notification(
         logger.debug("Sent notification for %s", subdomain)
     except httpx.HTTPStatusError as e:
         msg = f"Discord API error: {e.response.status_code} - {e.response.text}"
-        logger.exception("Discord API error: %s - %s", e.response.status_code, e.response.text)
+        logger.exception(
+            "Discord API error: %s - %s", e.response.status_code, e.response.text
+        )
         raise WebhookError(msg) from e
     except httpx.RequestError:
         logger.exception("Failed to send Discord notification")

@@ -85,7 +85,9 @@ async def icmp_ping(host: str, ping_timeout: int = 5) -> ICMPPingResult:
 
 
 async def http_ping(
-    client: httpx.AsyncClient, host: str, request_timeout: float = 10.0,
+    client: httpx.AsyncClient,
+    host: str,
+    request_timeout: float = 10.0,
 ) -> HTTPPingResult:
     """
     Perform an HTTP/HTTPS ping to the host.

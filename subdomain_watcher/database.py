@@ -22,10 +22,13 @@ class Subdomain(Base):
     domain: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     subdomain: Mapped[str] = mapped_column(String(255), nullable=False)
     first_seen: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(),
+        DateTime,
+        server_default=func.now(),
     )
     last_seen: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(),
+        DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
     )
 
     __table_args__ = (
@@ -43,7 +46,9 @@ class Database:
         self.database_url = database_url or _DEFAULT_DATABASE_URL
         self.engine = create_async_engine(self.database_url, echo=False)
         self.session_factory = async_sessionmaker(
-            self.engine, class_=AsyncSession, expire_on_commit=False,
+            self.engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
         )
 
     async def init_db(self) -> None:
@@ -77,7 +82,8 @@ class Database:
         async with self.session_factory() as session:
             result = await session.execute(
                 select(Subdomain).where(
-                    Subdomain.domain == domain, Subdomain.subdomain.in_(subdomains),
+                    Subdomain.domain == domain,
+                    Subdomain.subdomain.in_(subdomains),
                 ),
             )
             for subdomain in result.scalars():
