@@ -1,0 +1,33 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# SQLite database files
+subdomain-watcher.db
+subdomain-watcher.db-journal
+subdomain-watcher.db-shm
+subdomain-watcher.db-wal
+
+# User-specific configuration (created from .example files)
+config.yaml
+.env
+
+# Tool caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+

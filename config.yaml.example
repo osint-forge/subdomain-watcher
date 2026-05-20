@@ -1,0 +1,35 @@
+# Discord webhook URL for new subdomain notifications
+webhook_url: "https://discord.com/api/webhooks/your-webhook-id/your-webhook-token"
+
+# Discord webhook URL for error notifications (required)
+error_webhook_url: "https://discord.com/api/webhooks/your-error-webhook-id/your-error-webhook-token"
+
+# Global refresh interval in seconds (default: 3600 = 1 hour)
+refresh_interval: 3600
+
+# HTTP timeout in seconds for ping checks (default: 10)
+http_timeout: 10
+
+# Subfinder timeout in seconds (default: 300 = 5 minutes)
+# Increase this for domains with many subdomains
+subfinder_timeout: 300
+
+# Enable ICMP ping checks globally (default: true)
+icmp_enabled: true
+
+# Enable HTTP ping checks globally (default: true)
+http_enabled: true
+
+# List of domains to watch
+domains:
+  - domain: "example.com"
+
+  - domain: "another-example.com"
+    # Optional: Override webhook URL for this domain
+    webhook_url: "https://discord.com/api/webhooks/different-webhook-id/different-webhook-token"
+    # Optional: Override refresh interval for this domain (in seconds)
+    refresh_interval: 1800
+    # Optional: Override ICMP ping setting for this domain
+    icmp_enabled: false
+    # Optional: Override HTTP ping setting for this domain
+    http_enabled: true

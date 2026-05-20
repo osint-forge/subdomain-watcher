@@ -1,0 +1,44 @@
+# Git
+.git/
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+compose.yaml
+
+# Python
+__pycache__/
+*.py[oc]
+.venv
+*.egg-info
+build/
+dist/
+wheels/
+
+# Tool caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# SQLite database files (local dev)
+subdomain-watcher.db*
+
+# Configuration files (mounted at runtime)
+config.yaml
+config.yaml.example
+.env
+.env.example
+
+# Documentation
+README.md
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python version file
+.python-version

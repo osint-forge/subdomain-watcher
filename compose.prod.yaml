@@ -1,0 +1,14 @@
+services:
+  app:
+    image: ghcr.io/nmarkoski/subdomain-watcher:latest
+    cap_add:
+      - NET_RAW
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - subdomain_watcher_data:/app/data/
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:///app/data/subdomain-watcher.db
+    restart: unless-stopped
+
+volumes:
+  subdomain_watcher_data:

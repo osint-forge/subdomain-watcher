@@ -1,0 +1,84 @@
+[project]
+name = "subdomain-watcher"
+version = "0.1.0"
+description = "A tool that periodically checks for new subdomains using subfinder and sends notifications to Discord"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.13"
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "httpx>=0.28.1",
+    "icmplib>=3.0.4",
+    "pydantic>=2.12.5",
+    "pyyaml>=6.0.3",
+    "sqlalchemy>=2.0.45",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.1.0",
+    "ruff>=0.15.13",
+    "types-pyyaml>=6.0.12.20260518",
+]
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ['pydantic.mypy']
+
+[[tool.mypy.overrides]]
+module = "icmplib"
+ignore_missing_imports = true
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "E",
+    "W",
+    "I",
+    "N",
+    "UP",
+    "YTT",
+    "ANN",
+    "ASYNC",
+    "S",
+    "B",
+    "COM",
+    "C4",
+    "DTZ",
+    "FA",
+    "ISC",
+    "ICN",
+    "G",
+    "INP",
+    "PIE",
+    "PT",
+    "Q",
+    "RSE",
+    "RET",
+    "SLF",
+    "SIM",
+    "TID",
+    "PTH",
+    "PGH",
+    "PL",
+    "TRY",
+    "FLY",
+    "PERF",
+    "FURB",
+    "LOG",
+    "RUF",
+]
+ignore = [
+    "PLR2004",
+    "PLR0912",
+    "PLR0915",
+    "TRY003",
+    "PLR0911",
+    "RET504",
+    "RUF001",
+    "E501",
+    "PLR0913",
+]
