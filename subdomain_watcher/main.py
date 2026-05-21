@@ -36,7 +36,7 @@ async def main() -> None:
         logger.exception("Failed to load configuration")
         sys.exit(1)
 
-    logger.info("Loaded configuration with %s domains", len(config.domains))
+    logger.info("Loaded configuration with %s domain(s)", len(config.domains))
 
     logger.info("Initializing database...")
     try:

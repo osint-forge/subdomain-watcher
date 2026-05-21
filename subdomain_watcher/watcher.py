@@ -43,7 +43,7 @@ async def watch_domain(
     icmp_enabled = config.get_icmp_enabled(domain_config)
     http_enabled = config.get_http_enabled(domain_config)
 
-    logger.info("Scanning domain: %s", domain)
+    logger.info("[%s] Scanning domain", domain)
 
     try:
         # Run subfinder
@@ -51,7 +51,7 @@ async def watch_domain(
         discovered_subdomains = extract_subdomains(results)
 
         if not discovered_subdomains:
-            logger.info("No subdomains found for %s", domain)
+            logger.info("[%s] No subdomain(s) found", domain)
             return
 
         # Get known subdomains from database
@@ -61,14 +61,14 @@ async def watch_domain(
         new_subdomains = discovered_subdomains - known_subdomains
 
         if not new_subdomains:
-            logger.info("No new subdomains for %s", domain)
+            logger.info("[%s] No new subdomain(s)", domain)
             # Update last_seen for existing subdomains
             existing = list(discovered_subdomains & known_subdomains)
             if existing:
                 await db.update_last_seen(domain, existing)
             return
 
-        logger.info("Found %s new subdomains for %s", len(new_subdomains), domain)
+        logger.info("[%s] Found %s new subdomain(s)", domain, len(new_subdomains))
 
         # Process each new subdomain
         for subdomain in new_subdomains:
@@ -84,7 +84,6 @@ async def watch_domain(
 
                 # Send Discord notification FIRST (raises WebhookError on failure)
                 await send_subdomain_notification(
-                    client=client,
                     webhook_url=webhook_url,
                     domain=domain,
                     subdomain=subdomain,
@@ -100,21 +99,22 @@ async def watch_domain(
             except WebhookError as e:
                 # Webhook failed - subdomain NOT saved to DB, will retry next scan
                 logger.warning(
-                    "Skipping database save for %s due to webhook failure: %s",
+                    "[%s] Skipping database save for %s due to webhook failure: %s",
+                    domain,
                     subdomain,
                     e.message,
                 )
                 await send_error_notification(
-                    client=client,
                     webhook_url=error_webhook_url,
                     error_type="WebhookError",
                     message=e.message,
                     domain=domain,
                 )
             except Exception as e:
-                logger.exception("Error processing subdomain %s", subdomain)
+                logger.exception(
+                    "[%s] Error processing subdomain %s", domain, subdomain
+                )
                 await send_error_notification(
-                    client=client,
                     webhook_url=error_webhook_url,
                     error_type=type(e).__name__,
                     message=str(e),
@@ -127,18 +127,16 @@ async def watch_domain(
             await db.update_last_seen(domain, existing)
 
     except SubfinderError as e:
-        logger.exception("Subfinder error for %s", domain)
+        logger.exception("[%s] Subfinder error", domain)
         await send_error_notification(
-            client=client,
             webhook_url=error_webhook_url,
             error_type="SubfinderError",
             message=e.message,
             domain=domain,
         )
     except Exception as e:
-        logger.exception("Unexpected error watching %s", domain)
+        logger.exception("[%s] Unexpected error watching domain", domain)
         await send_error_notification(
-            client=client,
             webhook_url=error_webhook_url,
             error_type=type(e).__name__,
             message=str(e),
@@ -178,7 +176,6 @@ async def domain_watcher_loop(
             logger.exception("[%s] Unexpected error in watcher loop", domain)
             try:
                 await send_error_notification(
-                    client=client,
                     webhook_url=error_webhook_url,
                     error_type=type(e).__name__,
                     message=str(e),
@@ -207,11 +204,11 @@ async def run_watcher(client: httpx.AsyncClient, config: Config, db: Database) -
         config: Global configuration.
         db: Database instance.
     """
-    logger.info("Starting subdomain watcher with %s domains", len(config.domains))
+    logger.info("Starting subdomain watcher with %s domain(s)", len(config.domains))
 
     for domain_config in config.domains:
         interval = config.get_refresh_interval(domain_config)
-        logger.info("  - %s (interval: %ss)", domain_config.domain, interval)
+        logger.info("  %s (interval: %ss)", domain_config.domain, interval)
 
     async with asyncio.TaskGroup() as tg:
         for domain_config in config.domains:

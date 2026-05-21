@@ -1,18 +1,14 @@
 """Discord webhook notifications with embeds."""
 
-import asyncio
 import logging
 from datetime import UTC, datetime
-from typing import Any
 
-import httpx
+import aiohttp
+import discord
 
 from subdomain_watcher.ping import HTTPPingResult, ICMPPingResult, PingResult
 
 logger = logging.getLogger(__name__)
-
-# Max retries for rate-limited requests
-MAX_RATE_LIMIT_RETRIES = 3
 
 
 class WebhookError(Exception):
@@ -21,58 +17,6 @@ class WebhookError(Exception):
     def __init__(self, message: str) -> None:
         self.message = message
         super().__init__(message)
-
-
-# Discord embed colors
-COLOR_GREEN = 0x2ECC71  # Success - at least one ping succeeded
-COLOR_RED = 0xE74C3C  # Failure - both pings failed / error
-
-
-async def _post_webhook(
-    client: httpx.AsyncClient,
-    url: str,
-    payload: dict[str, Any],
-) -> httpx.Response:
-    """
-    Post to a Discord webhook with automatic rate limit handling.
-
-    Retries on 429 responses, waiting for the Retry-After duration.
-
-    Args:
-        client: The httpx client to use.
-        url: The webhook URL.
-        payload: The JSON payload to send.
-
-    Returns:
-        The successful response.
-
-    Raises:
-        httpx.HTTPStatusError: If the request fails after retries.
-        httpx.RequestError: If a network error occurs.
-    """
-    response: httpx.Response | None = None
-
-    for attempt in range(MAX_RATE_LIMIT_RETRIES):
-        response = await client.post(url, json=payload)
-
-        if response.status_code == 429:
-            retry_after = float(response.headers.get("Retry-After", 1))
-            logger.warning(
-                "Rate limited by Discord, retrying after %ss (attempt %s/%s)",
-                retry_after,
-                attempt + 1,
-                MAX_RATE_LIMIT_RETRIES,
-            )
-            await asyncio.sleep(retry_after)
-            continue
-
-        # Not rate limited, return the response (caller handles errors)
-        return response
-
-    # Exhausted retries, return last response (will be a 429)
-    # This should never be None since MAX_RATE_LIMIT_RETRIES >= 1
-    assert response is not None  # noqa: S101
-    return response
 
 
 def _format_icmp_status(icmp: ICMPPingResult) -> str:
@@ -88,7 +32,7 @@ def _format_http_status(http: HTTPPingResult) -> str:
     """Format HTTP ping status for embed field."""
     if http.success:
         latency = f" ({http.latency_ms:.1f}ms)" if http.latency_ms else ""
-        return f"✅ {http.status_code} ({http.protocol}){latency}"
+        return f"✅ {http.protocol} {http.status_code}{latency}"
     error = f" - {http.error}" if http.error else ""
     return f"❌ Unreachable{error}"
 
@@ -97,78 +41,67 @@ def _build_subdomain_embed(
     domain: str,
     subdomain: str,
     ping_result: PingResult,
-) -> dict[str, Any]:
+) -> discord.Embed:
     """Build a Discord embed for a new subdomain notification."""
-    color = COLOR_GREEN if ping_result.is_online else COLOR_RED
-    timestamp = datetime.now(UTC).isoformat()
-
-    fields = [
-        {"name": "Domain", "value": f"`{domain}`", "inline": True},
-        {"name": "Subdomain", "value": f"`{subdomain}`", "inline": True},
-        {"name": "\u200b", "value": "\u200b", "inline": True},  # Spacer
-    ]
+    colour = discord.Colour.green() if ping_result.is_online else discord.Colour.red()
+    embed = discord.Embed(
+        title="🌐 New Subdomain Discovered",
+        colour=colour,
+        timestamp=datetime.now(UTC),
+    )
+    embed.set_footer(text="Subdomain Watcher")
+    embed.add_field(name="Subdomain", value=f"`{subdomain}`", inline=True)
+    embed.add_field(name="Domain", value=f"`{domain}`", inline=True)
+    embed.add_field(
+        name="\u200b", value="\u200b", inline=True
+    )  # Spacer to force 2x2 layout
 
     # Only add ICMP field if enabled
     if ping_result.icmp is not None:
-        fields.append(
-            {
-                "name": "ICMP",
-                "value": _format_icmp_status(ping_result.icmp),
-                "inline": True,
-            },
+        embed.add_field(
+            name="ICMP",
+            value=_format_icmp_status(ping_result.icmp),
+            inline=True,
         )
 
     # Only add HTTP field if enabled
     if ping_result.http is not None:
-        fields.append(
-            {
-                "name": "HTTP",
-                "value": _format_http_status(ping_result.http),
-                "inline": True,
-            },
+        embed.add_field(
+            name="HTTP",
+            value=_format_http_status(ping_result.http),
+            inline=True,
         )
 
-    # Add spacer if we have ping fields (for alignment)
+    # Add second spacer if we have ping fields (for alignment)
     if ping_result.icmp is not None or ping_result.http is not None:
-        fields.append({"name": "\u200b", "value": "\u200b", "inline": True})
+        embed.add_field(name="\u200b", value="\u200b", inline=True)
 
-    return {
-        "title": "🌐 New Subdomain Discovered",
-        "color": color,
-        "fields": fields,
-        "timestamp": timestamp,
-        "footer": {"text": "Subdomain Watcher"},
-    }
+    return embed
 
 
 def _build_error_embed(
     error_type: str,
     domain: str | None,
     message: str,
-) -> dict[str, Any]:
+) -> discord.Embed:
     """Build a Discord embed for an error notification."""
-    timestamp = datetime.now(UTC).isoformat()
-
-    fields = [
-        {"name": "Type", "value": f"`{error_type}`", "inline": True},
-    ]
+    embed = discord.Embed(
+        title="❌ Error",
+        colour=discord.Colour.red(),
+        timestamp=datetime.now(UTC),
+    )
+    embed.set_footer(text="Subdomain Watcher")
+    embed.add_field(name="Type", value=f"`{error_type}`", inline=True)
 
     if domain:
-        fields.append({"name": "Domain", "value": f"`{domain}`", "inline": True})
+        embed.add_field(name="Domain", value=f"`{domain}`", inline=True)
 
-    fields.append({"name": "Message", "value": f"```{message}```", "inline": False})
+    embed.add_field(name="Message", value=f"```{message}```", inline=False)
 
-    return {
-        "title": "❌ Error",
-        "color": COLOR_RED,
-        "fields": fields,
-        "timestamp": timestamp,
-        "footer": {"text": "Subdomain Watcher"},
-    }
+    return embed
 
 
 async def send_subdomain_notification(
-    client: httpx.AsyncClient,
     webhook_url: str,
     domain: str,
     subdomain: str,
@@ -178,7 +111,6 @@ async def send_subdomain_notification(
     Send a Discord notification for a newly discovered subdomain.
 
     Args:
-        client: The httpx client to use for the request.
         webhook_url: The Discord webhook URL.
         domain: The parent domain.
         subdomain: The discovered subdomain.
@@ -188,25 +120,19 @@ async def send_subdomain_notification(
         WebhookError: If the notification fails to send.
     """
     embed = _build_subdomain_embed(domain, subdomain, ping_result)
-    payload = {"embeds": [embed]}
 
     try:
-        response = await _post_webhook(client, webhook_url, payload)
-        response.raise_for_status()
+        async with aiohttp.ClientSession() as session:
+            webhook = discord.Webhook.from_url(webhook_url, session=session)
+            await webhook.send(embed=embed)
         logger.debug("Sent notification for %s", subdomain)
-    except httpx.HTTPStatusError as e:
-        msg = f"Discord API error: {e.response.status_code} - {e.response.text}"
-        logger.exception(
-            "Discord API error: %s - %s", e.response.status_code, e.response.text
-        )
+    except discord.HTTPException as e:
+        msg = f"Discord API error: {e.status} - {e.text}"
+        logger.exception("Discord API error: %s - %s", e.status, e.text)
         raise WebhookError(msg) from e
-    except httpx.RequestError:
-        logger.exception("Failed to send Discord notification")
-        raise WebhookError("Failed to send Discord notification") from None
 
 
 async def send_error_notification(
-    client: httpx.AsyncClient,
     webhook_url: str,
     error_type: str,
     message: str,
@@ -216,7 +142,6 @@ async def send_error_notification(
     Send a Discord notification for an error.
 
     Args:
-        client: The httpx client to use for the request.
         webhook_url: The Discord webhook URL for errors.
         error_type: The type/class of the error.
         message: The error message.
@@ -226,21 +151,18 @@ async def send_error_notification(
         True if the notification was sent successfully, False otherwise.
     """
     embed = _build_error_embed(error_type, domain, message)
-    payload = {"embeds": [embed]}
 
     try:
-        response = await _post_webhook(client, webhook_url, payload)
-        response.raise_for_status()
+        async with aiohttp.ClientSession() as session:
+            webhook = discord.Webhook.from_url(webhook_url, session=session)
+            await webhook.send(embed=embed)
         logger.debug("Sent error notification: %s", error_type)
-    except httpx.HTTPStatusError as e:
+    except discord.HTTPException as e:
         logger.exception(
             "Discord API error (error webhook): %s - %s",
-            e.response.status_code,
-            e.response.text,
+            e.status,
+            e.text,
         )
-        return False
-    except httpx.RequestError:
-        logger.exception("Failed to send Discord error notification")
         return False
     else:
         return True

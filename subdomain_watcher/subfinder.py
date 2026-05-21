@@ -51,7 +51,7 @@ async def run_subfinder(
     """
     cmd = ["subfinder", "-d", domain, "-silent", "-json"]
 
-    logger.info("Running subfinder for domain: %s", domain)
+    logger.info("[%s] Running subfinder", domain)
 
     try:
         process = await asyncio.create_subprocess_exec(
@@ -103,13 +103,14 @@ async def run_subfinder(
                 )
             except (json.JSONDecodeError, KeyError) as e:
                 logger.warning(
-                    "Failed to parse subfinder output line: %s - %s",
+                    "[%s] Failed to parse subfinder output line: %s - %s",
+                    domain,
                     line,
                     e,
                 )
                 continue
 
-        logger.info("Found %s subdomains for %s", len(results), domain)
+        logger.info("[%s] Found %s subdomain(s)", domain, len(results))
         return results
 
 
