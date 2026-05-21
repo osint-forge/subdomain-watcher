@@ -1,7 +1,7 @@
 services:
   subdomain-watcher:
     container_name: subdomain-watcher
-    image: ghcr.io/nmarkoski/subdomain-watcher:latest
+    image: ghcr.io/osint-forge/subdomain-watcher:latest
     cap_add:
       - NET_RAW
     volumes:
