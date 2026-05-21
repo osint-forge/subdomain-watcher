@@ -41,6 +41,7 @@ def _build_subdomain_embed(
     domain: str,
     subdomain: str,
     ping_result: PingResult,
+    sources: list[str],
 ) -> discord.Embed:
     """Build a Discord embed for a new subdomain notification."""
     colour = discord.Colour.green() if ping_result.is_online else discord.Colour.red()
@@ -76,6 +77,14 @@ def _build_subdomain_embed(
     if ping_result.icmp is not None or ping_result.http is not None:
         embed.add_field(name="\u200b", value="\u200b", inline=True)
 
+    # Add sources field if available
+    if sources:
+        embed.add_field(
+            name="Sources",
+            value=f"`{', '.join(sources)}`",
+            inline=False,
+        )
+
     return embed
 
 
@@ -106,6 +115,7 @@ async def send_subdomain_notification(
     domain: str,
     subdomain: str,
     ping_result: PingResult,
+    sources: list[str],
 ) -> None:
     """
     Send a Discord notification for a newly discovered subdomain.
@@ -115,11 +125,12 @@ async def send_subdomain_notification(
         domain: The parent domain.
         subdomain: The discovered subdomain.
         ping_result: The ping result for the subdomain.
+        sources: The data sources that discovered this subdomain.
 
     Raises:
         WebhookError: If the notification fails to send.
     """
-    embed = _build_subdomain_embed(domain, subdomain, ping_result)
+    embed = _build_subdomain_embed(domain, subdomain, ping_result, sources)
 
     try:
         async with aiohttp.ClientSession() as session:

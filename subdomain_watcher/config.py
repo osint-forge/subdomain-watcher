@@ -14,6 +14,7 @@ class DomainConfig(BaseModel):
     refresh_interval: int | None = None
     icmp_enabled: bool | None = None
     http_enabled: bool | None = None
+    collect_sources: bool | None = None
 
 
 class Config(BaseModel):
@@ -26,6 +27,7 @@ class Config(BaseModel):
     subfinder_timeout: int = 300  # seconds
     icmp_enabled: bool = True
     http_enabled: bool = True
+    collect_sources: bool = False
     domains: list[DomainConfig]
 
     def get_webhook_url(self, domain_config: DomainConfig) -> str:
@@ -48,6 +50,12 @@ class Config(BaseModel):
         if domain_config.http_enabled is not None:
             return domain_config.http_enabled
         return self.http_enabled
+
+    def get_collect_sources(self, domain_config: DomainConfig) -> bool:
+        """Get the effective collect_sources setting for a domain (with fallback to global)."""
+        if domain_config.collect_sources is not None:
+            return domain_config.collect_sources
+        return self.collect_sources
 
 
 def load_config(path: Path | str = "config.yaml") -> Config:

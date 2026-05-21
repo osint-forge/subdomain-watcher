@@ -42,12 +42,17 @@ async def watch_domain(
     error_webhook_url = str(config.error_webhook_url)
     icmp_enabled = config.get_icmp_enabled(domain_config)
     http_enabled = config.get_http_enabled(domain_config)
+    collect_sources = config.get_collect_sources(domain_config)
 
     logger.info("[%s] Scanning domain", domain)
 
     try:
         # Run subfinder
-        results = await run_subfinder(domain, process_timeout=config.subfinder_timeout)
+        results = await run_subfinder(
+            domain,
+            process_timeout=config.subfinder_timeout,
+            collect_sources=collect_sources,
+        )
         discovered_subdomains = extract_subdomains(results)
 
         if not discovered_subdomains:
@@ -58,12 +63,13 @@ async def watch_domain(
         known_subdomains = await db.get_known_subdomains(domain)
 
         # Find new subdomains
-        new_subdomains = discovered_subdomains - known_subdomains
+        discovered_hosts = set(discovered_subdomains.keys())
+        new_subdomains = discovered_hosts - known_subdomains
 
         if not new_subdomains:
             logger.info("[%s] No new subdomain(s)", domain)
             # Update last_seen for existing subdomains
-            existing = list(discovered_subdomains & known_subdomains)
+            existing = list(discovered_hosts & known_subdomains)
             if existing:
                 await db.update_last_seen(domain, existing)
             return
@@ -82,12 +88,15 @@ async def watch_domain(
                     http_enabled=http_enabled,
                 )
 
+                sources = discovered_subdomains.get(subdomain, [])
+
                 # Send Discord notification FIRST (raises WebhookError on failure)
                 await send_subdomain_notification(
                     webhook_url=webhook_url,
                     domain=domain,
                     subdomain=subdomain,
                     ping_result=ping_result,
+                    sources=sources,
                 )
 
                 # Only add to database AFTER successful notification
@@ -122,7 +131,7 @@ async def watch_domain(
                 )
 
         # Update last_seen for existing subdomains
-        existing = list(discovered_subdomains & known_subdomains)
+        existing = list(discovered_hosts & known_subdomains)
         if existing:
             await db.update_last_seen(domain, existing)
 

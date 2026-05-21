@@ -7,6 +7,7 @@ A tool that periodically discovers new subdomains using [subfinder](https://gith
 - Periodic subdomain discovery using subfinder
 - Discord webhook notifications with rich embeds
 - ICMP and HTTP ping status for each discovered subdomain
+- Optional source attribution showing which passive sources found each subdomain
 - SQLite database for tracking discovered subdomains
 - Per-domain webhook and refresh interval overrides
 - Parallel scanning of multiple domains
@@ -56,6 +57,10 @@ icmp_enabled: true
 # Enable HTTP ping checks globally (default: true)
 http_enabled: true
 
+# Collect data sources for each discovered subdomain (default: false)
+# When enabled, the Sources field is included in Discord notifications.
+collect_sources: false
+
 # List of domains to watch
 domains:
   - domain: "example.com"
@@ -66,6 +71,7 @@ domains:
     refresh_interval: 1800
     icmp_enabled: false
     http_enabled: true
+    collect_sources: true
 ```
 
 ## Discord Notifications
@@ -77,6 +83,7 @@ When a new subdomain is discovered, a notification is sent with:
 - ICMP ping status (online/offline with latency)
 - HTTP status code and protocol (HTTPS/HTTP)
 - Green embed color if either ping succeeds, red if both fail
+- Data sources that discovered the subdomain (when `collect_sources` is enabled)
 
 ### Error Notifications
 

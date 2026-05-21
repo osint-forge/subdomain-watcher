@@ -20,6 +20,11 @@ icmp_enabled: true
 # Enable HTTP ping checks globally (default: true)
 http_enabled: true
 
+# Collect data sources for each discovered subdomain (default: false)
+# When enabled, subfinder reports which passive sources found each subdomain,
+# and the Sources field is included in Discord notifications.
+collect_sources: false
+
 # List of domains to watch
 domains:
   - domain: "example.com"
@@ -33,3 +38,5 @@ domains:
     icmp_enabled: false
     # Optional: Override HTTP ping setting for this domain
     http_enabled: true
+    # Optional: Override collect_sources for this domain
+    collect_sources: true

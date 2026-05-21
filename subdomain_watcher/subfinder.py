@@ -14,7 +14,7 @@ class SubfinderResult:
 
     host: str
     input_domain: str
-    source: str
+    sources: list[str]
 
 
 class SubfinderError(Exception):
@@ -35,6 +35,7 @@ class SubfinderError(Exception):
 async def run_subfinder(
     domain: str,
     process_timeout: int = 300,
+    collect_sources: bool = False,
 ) -> list[SubfinderResult]:
     """
     Run subfinder for a domain and return discovered subdomains.
@@ -42,6 +43,7 @@ async def run_subfinder(
     Args:
         domain: The domain to scan for subdomains.
         process_timeout: Maximum time in seconds to wait for subfinder to complete.
+        collect_sources: Whether to collect the data sources for each subdomain.
 
     Returns:
         List of SubfinderResult objects with discovered subdomains.
@@ -50,6 +52,8 @@ async def run_subfinder(
         SubfinderError: If subfinder fails or times out.
     """
     cmd = ["subfinder", "-d", domain, "-silent", "-json"]
+    if collect_sources:
+        cmd.append("-collect-sources")
 
     logger.info("[%s] Running subfinder", domain)
 
@@ -98,7 +102,7 @@ async def run_subfinder(
                     SubfinderResult(
                         host=data["host"],
                         input_domain=data["input"],
-                        source=data.get("source", "unknown"),
+                        sources=data.get("sources", []),
                     ),
                 )
             except (json.JSONDecodeError, KeyError) as e:
@@ -114,6 +118,15 @@ async def run_subfinder(
         return results
 
 
-def extract_subdomains(results: list[SubfinderResult]) -> set[str]:
-    """Extract unique subdomain hostnames from subfinder results."""
-    return {r.host for r in results}
+def extract_subdomains(results: list[SubfinderResult]) -> dict[str, list[str]]:
+    """Extract unique subdomain hostnames and their sources from subfinder results."""
+    subdomains: dict[str, list[str]] = {}
+    for r in results:
+        # Merge sources if the same host appears multiple times
+        if r.host in subdomains:
+            existing = set(subdomains[r.host])
+            existing.update(r.sources)
+            subdomains[r.host] = sorted(existing)
+        else:
+            subdomains[r.host] = r.sources.copy()
+    return subdomains
