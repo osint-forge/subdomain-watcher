@@ -1,5 +1,6 @@
 services:
-  app:
+  subdomain-watcher:
+    container_name: subdomain-watcher
     build:
       context: .
     cap_add:
