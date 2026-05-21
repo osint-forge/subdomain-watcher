@@ -50,14 +50,22 @@ refresh_interval: 3600
 # HTTP timeout in seconds for ping checks (default: 10)
 http_timeout: 10
 
+# Enable ICMP ping checks globally (default: true)
+icmp_enabled: true
+
+# Enable HTTP ping checks globally (default: true)
+http_enabled: true
+
 # List of domains to watch
 domains:
   - domain: "example.com"
-  
+
   - domain: "another.com"
     # Optional per-domain overrides:
     webhook_url: "https://discord.com/api/webhooks/..."
     refresh_interval: 1800
+    icmp_enabled: false
+    http_enabled: true
 ```
 
 ## Discord Notifications
