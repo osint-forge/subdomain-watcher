@@ -1,6 +1,7 @@
 name: Docker Build
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - 'main'
@@ -10,7 +11,6 @@ on:
       - 'pyproject.toml'
       - 'uv.lock'
       - 'subdomain_watcher/**'
-      - 'compose.yaml'
 
 permissions:
   contents: read
