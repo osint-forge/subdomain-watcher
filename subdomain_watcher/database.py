@@ -1,5 +1,6 @@
 """Database models and async engine setup for subdomain watcher."""
 
+import os
 from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, String, UniqueConstraint, func, select
@@ -43,7 +44,9 @@ class Database:
     """Async database connection manager."""
 
     def __init__(self, database_url: str | None = None) -> None:
-        self.database_url = database_url or _DEFAULT_DATABASE_URL
+        self.database_url = (
+            database_url or os.environ.get("DATABASE_URL") or _DEFAULT_DATABASE_URL
+        )
         self.engine = create_async_engine(self.database_url, echo=False)
         self.session_factory = async_sessionmaker(
             self.engine,
