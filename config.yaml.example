@@ -14,6 +14,23 @@ http_timeout: 10
 # Increase this for domains with many subdomains
 subfinder_timeout: 300
 
+# Enable recursive subdomain discovery globally (default: false)
+recursive: false
+
+# Use all available subfinder sources globally (default: false)
+all_sources: false
+
+# Enable DNS resolution globally (default: true)
+dns_enabled: true
+
+# Optional: subfinder source request timeout in seconds
+# Only passed to subfinder when configured
+# subfinder_request_timeout: 30
+
+# Optional: max minutes to wait for subfinder enumeration results
+# Only passed to subfinder when configured
+# subfinder_max_time: 10
+
 # Enable ICMP ping checks globally (default: true)
 icmp_enabled: true
 
@@ -40,3 +57,13 @@ domains:
     http_enabled: true
     # Optional: Override collect_sources for this domain
     collect_sources: true
+    # Optional: Override recursive discovery for this domain
+    recursive: true
+    # Optional: Override all sources for this domain
+    all_sources: true
+    # Optional: Override DNS resolution for this domain
+    dns_enabled: true
+    # Optional: Override subfinder source request timeout for this domain
+    subfinder_request_timeout: 30
+    # Optional: Override subfinder max enumeration time for this domain
+    subfinder_max_time: 10

@@ -7,7 +7,10 @@ A tool that periodically discovers new subdomains using [subfinder](https://gith
 - Periodic subdomain discovery using subfinder
 - Discord webhook notifications with rich embeds
 - ICMP and HTTP ping status for each discovered subdomain
+- Optional DNS resolution with IP address reporting
 - Optional source attribution showing which passive sources found each subdomain
+- Recursive and all-source subfinder discovery modes
+- Optional subfinder provider config for API-backed sources
 - SQLite database for tracking discovered subdomains
 - Per-domain webhook and refresh interval overrides
 - Parallel scanning of multiple domains
@@ -57,9 +60,23 @@ icmp_enabled: true
 # Enable HTTP ping checks globally (default: true)
 http_enabled: true
 
+# Enable DNS resolution globally (default: true)
+dns_enabled: true
+
 # Collect data sources for each discovered subdomain (default: false)
 # When enabled, the Sources field is included in Discord notifications.
 collect_sources: false
+
+# Enable recursive subdomain discovery globally (default: false)
+recursive: false
+
+# Use all available subfinder sources globally (default: false)
+all_sources: false
+
+# Optional subfinder optimization settings.
+# These are only passed to subfinder when configured.
+# subfinder_request_timeout: 30
+# subfinder_max_time: 10
 
 # List of domains to watch
 domains:
@@ -71,8 +88,24 @@ domains:
     refresh_interval: 1800
     icmp_enabled: false
     http_enabled: true
+    dns_enabled: true
     collect_sources: true
+    recursive: true
+    all_sources: true
+    subfinder_request_timeout: 30
+    subfinder_max_time: 10
 ```
+
+### Subfinder Provider Config
+
+Subfinder is always called with `-pc /app/provider-config.yaml`.
+If you want to use API-backed sources, create `provider-config.yaml` next to your app config and uncomment this volume in `compose.yaml` or `compose.prod.yaml`:
+
+```yaml
+# - ./provider-config.yaml:/app/provider-config.yaml:ro
+```
+
+If the file is not mounted, subfinder handles the missing provider config itself.
 
 ## Discord Notifications
 
@@ -82,6 +115,8 @@ When a new subdomain is discovered, a notification is sent with:
 - Parent domain and subdomain
 - ICMP ping status (online/offline with latency)
 - HTTP status code and protocol (HTTPS/HTTP)
+- DNS lookup result with resolved IPs or a short lookup error
+- Wildcard status from subfinder metadata
 - Green embed color if either ping succeeds, red if both fail
 - Data sources that discovered the subdomain (when `collect_sources` is enabled)
 

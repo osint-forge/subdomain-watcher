@@ -7,6 +7,7 @@ services:
       - NET_RAW
     volumes:
       - ./config.yaml:/app/config.yaml:ro
+      # - ./provider-config.yaml:/app/provider-config.yaml:ro
       - subdomain_watcher_data:/app/data/
     environment:
       DATABASE_URL: sqlite+aiosqlite:///data/subdomain-watcher.db
