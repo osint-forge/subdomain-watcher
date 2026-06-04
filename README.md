@@ -67,7 +67,7 @@ dns_enabled: true
 # When enabled, the Sources field is included in Discord notifications.
 collect_sources: false
 
-# Enable recursive subdomain discovery globally (default: false)
+# Only use recursive-capable sources (default: false)
 recursive: false
 
 # Use all available subfinder sources globally (default: false)
