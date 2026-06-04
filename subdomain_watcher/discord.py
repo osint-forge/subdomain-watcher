@@ -94,7 +94,9 @@ def _build_subdomain_embed(
     metadata_fields: list[tuple[str, str]] = []
     if ping_result.dns is not None:
         metadata_fields.append(("IP", _format_dns_status(ping_result.dns)))
-        metadata_fields.append(("Wildcard", ":white_check_mark: Yes" if wildcard_certificate else ":x: No"))
+        metadata_fields.append(
+            ("Wildcard", ":white_check_mark: Yes" if wildcard_certificate else ":x: No")
+        )
     elif wildcard_certificate:
         metadata_fields.append(("Wildcard", ":white_check_mark: Yes"))
     _add_inline_row(embed, metadata_fields)
