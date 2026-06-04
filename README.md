@@ -98,14 +98,13 @@ domains:
 
 ### Subfinder Provider Config
 
-Subfinder is always called with `-pc /app/provider-config.yaml`.
-If you want to use API-backed sources, create `provider-config.yaml` next to your app config and uncomment this volume in `compose.yaml` or `compose.prod.yaml`:
+If you want to use API-backed sources, copy or rename `provider-config.yaml.example` to `provider-config.yaml`, add your API keys, and uncomment this line in `compose.yaml` or `compose.prod.yaml`:
 
 ```yaml
 # - ./provider-config.yaml:/app/provider-config.yaml:ro
 ```
 
-If the file is not mounted, subfinder handles the missing provider config itself.
+For the expected provider config format and example source entries, see Subfinder’s [official documentation](https://docs.projectdiscovery.io/opensource/subfinder/install#example-provider-config).
 
 ## Discord Notifications
 

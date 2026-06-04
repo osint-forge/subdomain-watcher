@@ -26,6 +26,7 @@ subdomain-watcher.db*
 
 # Configuration files (mounted at runtime)
 config.yaml
+provider-config.yaml
 config.yaml.example
 .env
 .env.example

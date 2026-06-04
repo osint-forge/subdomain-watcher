@@ -17,6 +17,7 @@ subdomain-watcher.db-wal
 
 # User-specific configuration (created from .example files)
 config.yaml
+provider-config.yaml
 .env
 
 # Tool caches
@@ -30,4 +31,3 @@ config.yaml
 # OS files
 .DS_Store
 Thumbs.db
-
