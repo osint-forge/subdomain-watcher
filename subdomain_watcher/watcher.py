@@ -43,6 +43,10 @@ async def watch_domain(
     icmp_enabled = config.get_icmp_enabled(domain_config)
     http_enabled = config.get_http_enabled(domain_config)
     collect_sources = config.get_collect_sources(domain_config)
+    recursive = config.get_recursive(domain_config)
+    all_sources = config.get_all_sources(domain_config)
+    subfinder_request_timeout = config.get_subfinder_request_timeout(domain_config)
+    subfinder_max_time = config.get_subfinder_max_time(domain_config)
 
     logger.info("[%s] Scanning domain", domain)
 
@@ -52,6 +56,10 @@ async def watch_domain(
             domain,
             process_timeout=config.subfinder_timeout,
             collect_sources=collect_sources,
+            recursive=recursive,
+            all_sources=all_sources,
+            request_timeout=subfinder_request_timeout,
+            max_time=subfinder_max_time,
         )
         discovered_subdomains = extract_subdomains(results)
 
@@ -88,7 +96,7 @@ async def watch_domain(
                     http_enabled=http_enabled,
                 )
 
-                sources = discovered_subdomains.get(subdomain, [])
+                discovery = discovered_subdomains[subdomain]
 
                 # Send Discord notification FIRST (raises WebhookError on failure)
                 await send_subdomain_notification(
@@ -96,7 +104,7 @@ async def watch_domain(
                     domain=domain,
                     subdomain=subdomain,
                     ping_result=ping_result,
-                    sources=sources,
+                    sources=discovery.sources,
                 )
 
                 # Only add to database AFTER successful notification

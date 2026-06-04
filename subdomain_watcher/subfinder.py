@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
+_PROVIDER_CONFIG_PATH = "/app/provider-config.yaml"
+
 
 @dataclass
 class SubfinderResult:
@@ -15,6 +17,15 @@ class SubfinderResult:
     host: str
     input_domain: str
     sources: list[str]
+    wildcard_certificate: bool = False
+
+
+@dataclass
+class SubdomainDiscovery:
+    """Merged discovery metadata for a subdomain."""
+
+    sources: list[str]
+    wildcard_certificate: bool
 
 
 class SubfinderError(Exception):
@@ -36,6 +47,10 @@ async def run_subfinder(
     domain: str,
     process_timeout: int = 300,
     collect_sources: bool = False,
+    recursive: bool = False,
+    all_sources: bool = False,
+    request_timeout: int | None = None,
+    max_time: int | None = None,
 ) -> list[SubfinderResult]:
     """
     Run subfinder for a domain and return discovered subdomains.
@@ -44,6 +59,10 @@ async def run_subfinder(
         domain: The domain to scan for subdomains.
         process_timeout: Maximum time in seconds to wait for subfinder to complete.
         collect_sources: Whether to collect the data sources for each subdomain.
+        recursive: Whether to use recursive subdomain discovery.
+        all_sources: Whether to use all available sources.
+        request_timeout: Seconds to wait before timing out source requests.
+        max_time: Minutes to wait for enumeration results.
 
     Returns:
         List of SubfinderResult objects with discovered subdomains.
@@ -51,9 +70,25 @@ async def run_subfinder(
     Raises:
         SubfinderError: If subfinder fails or times out.
     """
-    cmd = ["subfinder", "-d", domain, "-silent", "-json"]
+    cmd = [
+        "subfinder",
+        "-d",
+        domain,
+        "-silent",
+        "-json",
+        "-pc",
+        _PROVIDER_CONFIG_PATH,
+    ]
     if collect_sources:
         cmd.append("-collect-sources")
+    if recursive:
+        cmd.append("-recursive")
+    if all_sources:
+        cmd.append("-all")
+    if request_timeout is not None:
+        cmd.extend(("-timeout", str(request_timeout)))
+    if max_time is not None:
+        cmd.extend(("-max-time", str(max_time)))
 
     logger.info("[%s] Running subfinder", domain)
 
@@ -102,7 +137,10 @@ async def run_subfinder(
                     SubfinderResult(
                         host=data["host"],
                         input_domain=data["input"],
-                        sources=data.get("sources", []),
+                        sources=_extract_sources(data),
+                        wildcard_certificate=bool(
+                            data.get("wildcard_certificate", False),
+                        ),
                     ),
                 )
             except (json.JSONDecodeError, KeyError) as e:
@@ -118,15 +156,40 @@ async def run_subfinder(
         return results
 
 
-def extract_subdomains(results: list[SubfinderResult]) -> dict[str, list[str]]:
-    """Extract unique subdomain hostnames and their sources from subfinder results."""
-    subdomains: dict[str, list[str]] = {}
+def _extract_sources(data: dict[str, object]) -> list[str]:
+    """Extract source values from subfinder JSON output."""
+    sources: set[str] = set()
+
+    raw_sources = data.get("sources")
+    if isinstance(raw_sources, list):
+        sources.update(str(source) for source in raw_sources if source)
+
+    raw_source = data.get("source")
+    if isinstance(raw_source, str) and raw_source:
+        sources.add(raw_source)
+
+    return sorted(sources)
+
+
+def extract_subdomains(
+    results: list[SubfinderResult],
+) -> dict[str, SubdomainDiscovery]:
+    """Extract unique subdomain hostnames and their discovery metadata."""
+    subdomains: dict[str, SubdomainDiscovery] = {}
     for r in results:
-        # Merge sources if the same host appears multiple times
         if r.host in subdomains:
-            existing = set(subdomains[r.host])
+            discovery = subdomains[r.host]
+            existing = set(discovery.sources)
             existing.update(r.sources)
-            subdomains[r.host] = sorted(existing)
+            subdomains[r.host] = SubdomainDiscovery(
+                sources=sorted(existing),
+                wildcard_certificate=(
+                    discovery.wildcard_certificate or r.wildcard_certificate
+                ),
+            )
         else:
-            subdomains[r.host] = r.sources.copy()
+            subdomains[r.host] = SubdomainDiscovery(
+                sources=r.sources.copy(),
+                wildcard_certificate=r.wildcard_certificate,
+            )
     return subdomains
