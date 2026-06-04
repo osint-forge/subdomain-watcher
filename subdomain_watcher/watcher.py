@@ -42,6 +42,7 @@ async def watch_domain(
     error_webhook_url = str(config.error_webhook_url)
     icmp_enabled = config.get_icmp_enabled(domain_config)
     http_enabled = config.get_http_enabled(domain_config)
+    dns_enabled = config.get_dns_enabled(domain_config)
     collect_sources = config.get_collect_sources(domain_config)
     recursive = config.get_recursive(domain_config)
     all_sources = config.get_all_sources(domain_config)
@@ -94,6 +95,7 @@ async def watch_domain(
                     config.http_timeout,
                     icmp_enabled=icmp_enabled,
                     http_enabled=http_enabled,
+                    dns_enabled=dns_enabled,
                 )
 
                 discovery = discovered_subdomains[subdomain]
@@ -105,6 +107,7 @@ async def watch_domain(
                     subdomain=subdomain,
                     ping_result=ping_result,
                     sources=discovery.sources,
+                    wildcard_certificate=discovery.wildcard_certificate,
                 )
 
                 # Only add to database AFTER successful notification

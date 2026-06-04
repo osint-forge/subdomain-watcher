@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 import aiohttp
 import discord
 
-from subdomain_watcher.ping import HTTPPingResult, ICMPPingResult, PingResult
+from subdomain_watcher.ping import DNSResult, HTTPPingResult, ICMPPingResult, PingResult
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +37,20 @@ def _format_http_status(http: HTTPPingResult) -> str:
     return f"❌ Unreachable{error}"
 
 
+def _format_dns_status(dns: DNSResult) -> str:
+    """Format DNS lookup status for embed field."""
+    if dns.success:
+        return f"Online - `{', '.join(dns.ip_addresses)}`"
+    error = dns.error or "DNS lookup failed"
+    return f"Offline - {error}"
+
+
 def _build_subdomain_embed(
     domain: str,
     subdomain: str,
     ping_result: PingResult,
     sources: list[str],
+    wildcard_certificate: bool,
 ) -> discord.Embed:
     """Build a Discord embed for a new subdomain notification."""
     colour = discord.Colour.green() if ping_result.is_online else discord.Colour.red()
@@ -76,6 +85,26 @@ def _build_subdomain_embed(
     # Add second spacer if we have ping fields (for alignment)
     if ping_result.icmp is not None or ping_result.http is not None:
         embed.add_field(name="\u200b", value="\u200b", inline=True)
+
+    # Add DNS and wildcard metadata if available
+    if ping_result.dns is not None:
+        embed.add_field(
+            name="IP",
+            value=_format_dns_status(ping_result.dns),
+            inline=True,
+        )
+        embed.add_field(
+            name="Wildcard",
+            value="Yes" if wildcard_certificate else "No",
+            inline=True,
+        )
+        embed.add_field(name="\u200b", value="\u200b", inline=True)
+    elif wildcard_certificate:
+        embed.add_field(
+            name="Wildcard",
+            value="Yes",
+            inline=True,
+        )
 
     # Add sources field if available
     if sources:
@@ -116,6 +145,7 @@ async def send_subdomain_notification(
     subdomain: str,
     ping_result: PingResult,
     sources: list[str],
+    wildcard_certificate: bool,
 ) -> None:
     """
     Send a Discord notification for a newly discovered subdomain.
@@ -126,11 +156,18 @@ async def send_subdomain_notification(
         subdomain: The discovered subdomain.
         ping_result: The ping result for the subdomain.
         sources: The data sources that discovered this subdomain.
+        wildcard_certificate: Whether subfinder marked the subdomain as wildcard.
 
     Raises:
         WebhookError: If the notification fails to send.
     """
-    embed = _build_subdomain_embed(domain, subdomain, ping_result, sources)
+    embed = _build_subdomain_embed(
+        domain,
+        subdomain,
+        ping_result,
+        sources,
+        wildcard_certificate,
+    )
 
     try:
         async with aiohttp.ClientSession() as session:

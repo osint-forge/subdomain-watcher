@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import socket
 from dataclasses import dataclass
 
 import httpx
@@ -31,11 +32,21 @@ class HTTPPingResult:
 
 
 @dataclass
+class DNSResult:
+    """Result of a DNS lookup."""
+
+    success: bool
+    ip_addresses: list[str]
+    error: str | None = None
+
+
+@dataclass
 class PingResult:
     """Combined result of ICMP and HTTP pings."""
 
     icmp: ICMPPingResult | None  # None = disabled
     http: HTTPPingResult | None  # None = disabled
+    dns: DNSResult | None  # None = disabled
 
     @property
     def is_online(self) -> bool:
@@ -133,12 +144,50 @@ async def http_ping(
     return HTTPPingResult(success=False, error="Connection failed")
 
 
+async def dns_lookup(host: str) -> DNSResult:
+    """
+    Resolve the host to IP addresses.
+
+    Args:
+        host: The hostname to resolve.
+
+    Returns:
+        DNSResult with success status and resolved IP addresses.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+        records = await loop.getaddrinfo(
+            host,
+            None,
+            type=socket.SOCK_STREAM,
+        )
+    except socket.gaierror:
+        return DNSResult(
+            success=False,
+            ip_addresses=[],
+            error="DNS lookup failed",
+        )
+    except Exception as e:
+        return DNSResult(success=False, ip_addresses=[], error=str(e))
+
+    ip_addresses = sorted({record[4][0] for record in records})
+    if not ip_addresses:
+        return DNSResult(
+            success=False,
+            ip_addresses=[],
+            error="DNS lookup failed",
+        )
+
+    return DNSResult(success=True, ip_addresses=ip_addresses)
+
+
 async def ping_subdomain(
     client: httpx.AsyncClient,
     host: str,
     http_timeout: float = 10.0,
     icmp_enabled: bool = True,
     http_enabled: bool = True,
+    dns_enabled: bool = True,
 ) -> PingResult:
     """
     Perform ICMP and/or HTTP pings to a subdomain based on enabled flags.
@@ -149,6 +198,7 @@ async def ping_subdomain(
         http_timeout: Timeout for HTTP requests in seconds.
         icmp_enabled: Whether to perform ICMP ping.
         http_enabled: Whether to perform HTTP ping.
+        dns_enabled: Whether to perform a DNS lookup.
 
     Returns:
         PingResult with enabled ping results (None for disabled pings).
@@ -162,8 +212,11 @@ async def ping_subdomain(
             tasks["http"] = tg.create_task(
                 http_ping(client, host, request_timeout=http_timeout),
             )
+        if dns_enabled:
+            tasks["dns"] = tg.create_task(dns_lookup(host))
 
     return PingResult(
         icmp=tasks["icmp"].result() if "icmp" in tasks else None,
         http=tasks["http"].result() if "http" in tasks else None,
+        dns=tasks["dns"].result() if "dns" in tasks else None,
     )
