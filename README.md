@@ -54,6 +54,9 @@ refresh_interval: 3600
 # HTTP timeout in seconds for ping checks (default: 10)
 http_timeout: 10
 
+# App-level hard timeout for the whole subfinder process (default: 300 seconds)
+subfinder_process_timeout: 300
+
 # Enable ICMP ping checks globally (default: true)
 icmp_enabled: true
 
@@ -75,6 +78,8 @@ all_sources: false
 
 # Optional subfinder optimization settings.
 # These are only passed to subfinder when configured.
+# subfinder_request_timeout maps to subfinder -timeout, in seconds.
+# subfinder_max_time maps to subfinder -max-time, in minutes.
 # subfinder_request_timeout: 30
 # subfinder_max_time: 10
 

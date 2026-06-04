@@ -33,7 +33,7 @@ class Config(BaseModel):
     error_webhook_url: HttpUrl
     refresh_interval: PositiveInt = 3600  # seconds
     http_timeout: PositiveInt = 10  # seconds
-    subfinder_timeout: PositiveInt = 300  # seconds
+    subfinder_process_timeout: PositiveInt = 300  # seconds
     icmp_enabled: bool = True
     http_enabled: bool = True
     collect_sources: bool = False

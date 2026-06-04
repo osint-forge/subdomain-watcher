@@ -10,9 +10,9 @@ refresh_interval: 3600
 # HTTP timeout in seconds for ping checks (default: 10)
 http_timeout: 10
 
-# Subfinder timeout in seconds (default: 300 = 5 minutes)
-# Increase this for domains with many subdomains
-subfinder_timeout: 300
+# App-level hard timeout for the whole subfinder process (default: 300 seconds)
+# Increase this for domains with many subdomains or all_sources enabled
+subfinder_process_timeout: 300
 
 # Enable recursive subdomain discovery globally (default: false)
 recursive: false

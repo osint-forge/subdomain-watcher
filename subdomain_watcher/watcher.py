@@ -55,7 +55,7 @@ async def watch_domain(
         # Run subfinder
         results = await run_subfinder(
             domain,
-            process_timeout=config.subfinder_timeout,
+            process_timeout=config.subfinder_process_timeout,
             collect_sources=collect_sources,
             recursive=recursive,
             all_sources=all_sources,
