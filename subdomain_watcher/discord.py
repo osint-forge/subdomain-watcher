@@ -23,26 +23,41 @@ def _format_icmp_status(icmp: ICMPPingResult) -> str:
     """Format ICMP ping status for embed field."""
     if icmp.success:
         latency = f" ({icmp.latency_ms:.1f}ms)" if icmp.latency_ms else ""
-        return f"✅ Online{latency}"
+        return f":white_check_mark: Online{latency}"
     error = f" - {icmp.error}" if icmp.error else ""
-    return f"❌ Offline{error}"
+    return f":x: Offline{error}"
 
 
 def _format_http_status(http: HTTPPingResult) -> str:
     """Format HTTP ping status for embed field."""
     if http.success:
         latency = f" ({http.latency_ms:.1f}ms)" if http.latency_ms else ""
-        return f"✅ {http.protocol} {http.status_code}{latency}"
+        return f":white_check_mark: {http.protocol} {http.status_code}{latency}"
     error = f" - {http.error}" if http.error else ""
-    return f"❌ Unreachable{error}"
+    return f":x: Unreachable{error}"
 
 
 def _format_dns_status(dns: DNSResult) -> str:
     """Format DNS lookup status for embed field."""
     if dns.success:
-        return f"Online - `{', '.join(dns.ip_addresses)}`"
-    error = dns.error or "DNS lookup failed"
-    return f"Offline - {error}"
+        return f"`{', '.join(dns.ip_addresses)}`"
+    error = f" - {dns.error}" if dns.error else ""
+    return f":x: Offline{error}"
+
+
+def _add_inline_row(
+    embed: discord.Embed,
+    fields: list[tuple[str, str]],
+) -> None:
+    """Add a two-column logical row padded for Discord's three-column layout."""
+    if not fields:
+        return
+
+    for name, value in fields:
+        embed.add_field(name=name, value=value, inline=True)
+
+    for _ in range(3 - len(fields)):
+        embed.add_field(name="\u200b", value="\u200b", inline=True)
 
 
 def _build_subdomain_embed(
@@ -55,56 +70,34 @@ def _build_subdomain_embed(
     """Build a Discord embed for a new subdomain notification."""
     colour = discord.Colour.green() if ping_result.is_online else discord.Colour.red()
     embed = discord.Embed(
-        title="🌐 New Subdomain Discovered",
+        title=":globe_with_meridians: New Subdomain Discovered",
         colour=colour,
         timestamp=datetime.now(UTC),
     )
     embed.set_footer(text="Subdomain Watcher")
-    embed.add_field(name="Subdomain", value=f"`{subdomain}`", inline=True)
-    embed.add_field(name="Domain", value=f"`{domain}`", inline=True)
-    embed.add_field(
-        name="\u200b", value="\u200b", inline=True
-    )  # Spacer to force 2x2 layout
 
-    # Only add ICMP field if enabled
+    _add_inline_row(
+        embed,
+        [
+            ("Subdomain", f"`{subdomain}`"),
+            ("Domain", f"`{domain}`"),
+        ],
+    )
+
+    ping_fields: list[tuple[str, str]] = []
     if ping_result.icmp is not None:
-        embed.add_field(
-            name="ICMP",
-            value=_format_icmp_status(ping_result.icmp),
-            inline=True,
-        )
-
-    # Only add HTTP field if enabled
+        ping_fields.append(("ICMP", _format_icmp_status(ping_result.icmp)))
     if ping_result.http is not None:
-        embed.add_field(
-            name="HTTP",
-            value=_format_http_status(ping_result.http),
-            inline=True,
-        )
+        ping_fields.append(("HTTP", _format_http_status(ping_result.http)))
+    _add_inline_row(embed, ping_fields)
 
-    # Add second spacer if we have ping fields (for alignment)
-    if ping_result.icmp is not None or ping_result.http is not None:
-        embed.add_field(name="\u200b", value="\u200b", inline=True)
-
-    # Add DNS and wildcard metadata if available
+    metadata_fields: list[tuple[str, str]] = []
     if ping_result.dns is not None:
-        embed.add_field(
-            name="IP",
-            value=_format_dns_status(ping_result.dns),
-            inline=True,
-        )
-        embed.add_field(
-            name="Wildcard",
-            value="Yes" if wildcard_certificate else "No",
-            inline=True,
-        )
-        embed.add_field(name="\u200b", value="\u200b", inline=True)
+        metadata_fields.append(("IP", _format_dns_status(ping_result.dns)))
+        metadata_fields.append(("Wildcard", ":white_check_mark: Yes" if wildcard_certificate else ":x: No"))
     elif wildcard_certificate:
-        embed.add_field(
-            name="Wildcard",
-            value="Yes",
-            inline=True,
-        )
+        metadata_fields.append(("Wildcard", ":white_check_mark: Yes"))
+    _add_inline_row(embed, metadata_fields)
 
     # Add sources field if available
     if sources:
@@ -124,7 +117,7 @@ def _build_error_embed(
 ) -> discord.Embed:
     """Build a Discord embed for an error notification."""
     embed = discord.Embed(
-        title="❌ Error",
+        title=":x: Error",
         colour=discord.Colour.red(),
         timestamp=datetime.now(UTC),
     )
