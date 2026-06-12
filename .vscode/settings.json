@@ -1,0 +1,6 @@
+{
+  "sonarlint.connectedMode.project": {
+    "connectionId": "osint-forge",
+    "projectKey": "subdomain-watcher"
+  }
+}
