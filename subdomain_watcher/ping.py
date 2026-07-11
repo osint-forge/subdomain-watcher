@@ -170,7 +170,7 @@ async def dns_lookup(host: str) -> DNSResult:
     except Exception as e:
         return DNSResult(success=False, ip_addresses=[], error=str(e))
 
-    ip_addresses = sorted({record[4][0] for record in records})
+    ip_addresses = sorted({str(record[4][0]) for record in records})
     if not ip_addresses:
         return DNSResult(
             success=False,
