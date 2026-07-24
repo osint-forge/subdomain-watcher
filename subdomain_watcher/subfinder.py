@@ -45,6 +45,7 @@ class SubfinderError(Exception):
 
 async def run_subfinder(
     domain: str,
+    *,
     process_timeout: int = 300,
     collect_sources: bool = False,
     recursive: bool = False,
