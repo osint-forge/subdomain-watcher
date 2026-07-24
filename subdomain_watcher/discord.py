@@ -138,6 +138,7 @@ async def send_subdomain_notification(
     webhook_url: str,
     domain: str,
     subdomain: str,
+    *,
     ping_result: PingResult,
     sources: list[str],
     wildcard_certificate: bool,
