@@ -184,6 +184,7 @@ async def dns_lookup(host: str) -> DNSResult:
 async def ping_subdomain(
     client: httpx.AsyncClient,
     host: str,
+    *,
     http_timeout: float = 10.0,
     icmp_enabled: bool = True,
     http_enabled: bool = True,
