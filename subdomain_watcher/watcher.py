@@ -92,7 +92,7 @@ async def watch_domain(
                 ping_result = await ping_subdomain(
                     client,
                     subdomain,
-                    config.http_timeout,
+                    http_timeout=config.http_timeout,
                     icmp_enabled=icmp_enabled,
                     http_enabled=http_enabled,
                     dns_enabled=dns_enabled,
